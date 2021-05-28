@@ -19,8 +19,7 @@ import org.junit.jupiter.api.Test;
 import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -194,6 +193,34 @@ public class BatchInsertITest extends AbstractITest {
             while (rs.next()) {
                 assertEquals(selectTime * 1000, rs.getTimestamp(1).getTime());
                 selectTime += 3600;
+            }
+        });
+
+    }
+
+    @Test
+    public void successfullyBatchInsertMap() throws Exception {
+        withStatement(statement -> {
+
+            statement.execute("SET allow_experimental_map_type = 1");
+            statement.execute("DROP TABLE IF EXISTS test");
+            statement.execute("CREATE TABLE test(kv Map(String, String))ENGINE=Log");
+
+            withPreparedStatement(statement.getConnection(), "INSERT INTO test VALUES(?)", pstmt -> {
+                for (int i = 0; i < 10; i++) {
+                    Map<String, String> map = new HashMap<>();
+                    map.put("key", "value");
+                    pstmt.setObject(1, map);
+                    pstmt.addBatch();
+                }
+                assertBatchInsertResult(pstmt.executeBatch(), 10);
+            });
+            ResultSet rs = statement.executeQuery("SELECT kv FROM test");
+            while (rs.next()) {
+                ClickHouseArray ck = (ClickHouseArray) rs.getObject(1);
+                ClickHouseStruct t = (ClickHouseStruct) ((Object[]) ck.getArray())[0];
+                assertEquals("key", t.getAttributes()[0]);
+                assertEquals("value", t.getAttributes()[1]);
             }
         });
 

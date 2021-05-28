@@ -16,6 +16,7 @@ package com.github.housepower.jdbc.statement;
 
 import com.github.housepower.client.NativeContext;
 import com.github.housepower.data.Block;
+import com.github.housepower.data.DataTypeFactory;
 import com.github.housepower.data.IColumn;
 import com.github.housepower.data.IDataType;
 import com.github.housepower.data.type.*;
@@ -42,6 +43,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.github.housepower.misc.ExceptionUtil.unchecked;
@@ -279,6 +282,7 @@ public class ClickHousePreparedInsertStatement extends AbstractPreparedStatement
             return convertToCkDataType(((DataTypeNullable) type).getNestedDataType(), obj);
         }
         if (type instanceof DataTypeArray) {
+            if (obj instanceof Map) obj = mapAssembleToCkArray(obj);
             if (!(obj instanceof ClickHouseArray)) {
                 throw new ClickHouseSQLException(-1, "require ClickHouseArray for column: " + type.name() + ", but found " + obj.getClass());
             }
@@ -292,5 +296,34 @@ public class ClickHousePreparedInsertStatement extends AbstractPreparedStatement
         }
         LOG.debug("unhandled type: {}[{}]", type.name(), obj.getClass());
         return obj;
+    }
+
+    private Object mapAssembleToCkArray(Object obj) {
+        if (obj instanceof ClickHouseArray) return obj;
+        if (obj instanceof Map) {
+            try {
+                IDataType key = null;
+                IDataType value = null;
+                int count = 0;
+                String tupleName = "";
+                boolean first = true;
+                Map<?, ?> map = (HashMap) (obj);
+                ClickHouseStruct[] tupleArrays = new ClickHouseStruct[map.size()];
+                for (Object o : map.keySet()) {
+                    if (first) {
+                        key = DataTypeFactory.get(o.getClass().getSimpleName(), connection.serverContext());
+                        value = DataTypeFactory.get(map.get(o).getClass().getSimpleName(), connection.serverContext());
+                        tupleName = "Tuple(" + key.name() + ", " + value.name() + ")";
+                        first = false;
+                    }
+                    tupleArrays[count++] = new ClickHouseStruct(tupleName, new Object[]{o, map.get(o)});
+                }
+                return new ClickHouseArray(new DataTypeTuple(tupleName, new IDataType[]{key, value}),
+                        tupleArrays);
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+        }
+        throw new IllegalArgumentException("can not transfer map into clickhouseArray");
     }
 }

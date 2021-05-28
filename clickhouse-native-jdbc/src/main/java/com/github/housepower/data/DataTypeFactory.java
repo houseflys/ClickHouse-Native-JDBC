@@ -21,18 +21,7 @@ import java.util.Map;
 
 import com.github.housepower.client.NativeContext;
 import com.github.housepower.data.type.*;
-import com.github.housepower.data.type.complex.DataTypeArray;
-import com.github.housepower.data.type.complex.DataTypeCreator;
-import com.github.housepower.data.type.complex.DataTypeDateTime;
-import com.github.housepower.data.type.complex.DataTypeDateTime64;
-import com.github.housepower.data.type.complex.DataTypeDecimal;
-import com.github.housepower.data.type.complex.DataTypeEnum16;
-import com.github.housepower.data.type.complex.DataTypeEnum8;
-import com.github.housepower.data.type.complex.DataTypeFixedString;
-import com.github.housepower.data.type.complex.DataTypeNothing;
-import com.github.housepower.data.type.complex.DataTypeNullable;
-import com.github.housepower.data.type.complex.DataTypeString;
-import com.github.housepower.data.type.complex.DataTypeTuple;
+import com.github.housepower.data.type.complex.*;
 import com.github.housepower.misc.LRUCache;
 import com.github.housepower.misc.SQLLexer;
 import com.github.housepower.misc.Validate;
@@ -83,12 +72,16 @@ public class DataTypeFactory {
             return DataTypeString.CREATOR.createDataType(lexer, serverContext);
         } else if (dataTypeName.equalsIgnoreCase("Nothing")) {
             return DataTypeNothing.CREATOR.createDataType(lexer, serverContext);
-        } else {
+        } else if (dataTypeName.equalsIgnoreCase("Map")) {
+            return DataTypeMap.CREATOR.createDataType(lexer, serverContext);
+        }
+        else {
             IDataType<?, ?> dataType = dataTypes.get(dataTypeName.toLowerCase(Locale.ROOT));
             Validate.isTrue(dataType != null, "Unknown data type: " + dataTypeName);
             return dataType;
         }
     }
+
 
     /**
      * Some framework like Spark JDBC will convert all types name to lower case

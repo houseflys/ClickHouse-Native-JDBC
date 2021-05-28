@@ -797,6 +797,11 @@ public class SettingKey implements Serializable {
             .withDescription("Allow Int128, Int256, UInt256 and Decimal256 types")
             .build();
 
+    public static SettingKey allow_experimental_map_type = SettingKey.builder()
+            .withName("allow_experimental_map_type")
+            .withType(SettingType.Int32)
+            .withDescription("Allow Map field to be use")
+            .build();
 
     public static SettingKey port = SettingKey.builder()
             .withName("port")

@@ -15,6 +15,7 @@
 package com.github.housepower.data;
 
 import com.github.housepower.data.type.complex.DataTypeArray;
+import com.github.housepower.data.type.complex.DataTypeMap;
 import com.github.housepower.data.type.complex.DataTypeNullable;
 import com.github.housepower.data.type.complex.DataTypeTuple;
 
@@ -29,6 +30,9 @@ public class ColumnFactory {
 
         if (type instanceof DataTypeTuple)
             return new ColumnTuple(name, (DataTypeTuple) type, values);
+
+        if (type instanceof DataTypeMap)
+            return new ColumnArray(name, (DataTypeArray) ((DataTypeMap) type).getElementType(), values);
 
         return new Column(name, type, values);
     }
